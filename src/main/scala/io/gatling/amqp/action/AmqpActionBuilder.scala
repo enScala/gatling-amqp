@@ -23,7 +23,7 @@ class AmqpActionBuilder(amqpRequestBuilder: AmqpRequestBuilder)
       case Some(false) =>
         AmqpConsumeAction(AmqpAttributes(amqpRequestBuilder.requestName, req.asInstanceOf[Expression[ConsumeRequest]]), statsEngine, next)
       case None =>
-        throw new RuntimeException("No AmqpRequest Found. A possible issue could be improper definition of scenario.")
+        throw new RuntimeException("No AmqpRequest Found. A possible issue could be improper definition of scenario steps.")
     }
   }
 }

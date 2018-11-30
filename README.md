@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/maiha/gatling-amqp.svg?branch=master)](https://travis-ci.org/maiha/gatling-amqp)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/sc.ala/gatling-amqp_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/sc.ala/gatling-amqp_2.11)
+[![Build Status](https://travis-ci.org/dieselr/gatling-amqp.svg?branch=master)](https://travis-ci.org/dieselr/gatling-amqp)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/sc.ala/gatling-amqp_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/sc.ala/gatling-amqp_2.12)
 
 Introduction
 ============
@@ -8,13 +8,22 @@ Gatling AMQP support
 
 - CAUTION: This is not official library!
     - but using 'io.gatling.amqp' for FQCN to deal with 'private[gatling]', sorry.
-- inspired by https://github.com/fhalim/gatling-rabbitmq (thanks!)
+- inspired by https://github.com/fhalim/gatling-rabbitmq forked from https://github.com/maiha/gatling-amqp (thanks!)
 
+
+Library
+=======
+
+Current libraries version
+- scala 2.12.6 (no support for scala 2.11.x)
+- amqp-client-4.9.0
+- gatling-2.3.1
+- gatling-sbt-2.2.2 (wit depdency to `SBT` 1.2.3)
 
 Usage
 =====
 
-## handy cli (use AmqpProtocol as console utility) [0.6 feature]
+## handy cli (use AmqpProtocol as console utility) [feature from 0.6]
 
 
 ```scala
@@ -30,17 +39,17 @@ scala> amqp.declare(queue("q3", durable = true)).run
   implicit val amqpProtocol: AmqpProtocol = amqp
     .host("localhost")
     .port(5672)
-    // .vhost("/")
     .auth("guest", "guest")
     .poolSize(10)
 
-  val req = PublishRequest("q1", payload = "{foo:1}")
+  val req = PublishRequest("q1", "{foo:1}")
 
   val scn = scenario("AMQP Publish").repeat(1000) {
     exec(amqp("Publish").publish(req))
   }
 
-  setUp(scn.inject(rampUsers(10) over (1 seconds))).protocols(amqpProtocol)
+  setUp(scn.inject(rampUsers(10) over (1 seconds)))
+    .protocols(amqpProtocol)
 ```
 
 ## publish (with persistent)
@@ -49,7 +58,7 @@ scala> amqp.declare(queue("q3", durable = true)).run
 - known issue: persistent reset request's properties
 
 ```scala
-  val req = PublishRequest("q1", payload = "{foo:1}").persistent
+  val req = PublishRequest("q1", "{foo:1}").persistent
 ```
 
 ## publish (with confirmation)
@@ -65,13 +74,14 @@ scala> amqp.declare(queue("q3", durable = true)).run
     .poolSize(10)
     .confirmMode()
 
-  val req = PublishRequest("q1", payload = "{foo:1}")
+  val req = PublishRequest("q1", "{foo:1}")
 
   val scn = scenario("AMQP Publish(ack)").repeat(1000) {
     exec(amqp("Publish").publish(req))
   }
 
-  setUp(scn.inject(rampUsers(10) over (1 seconds))).protocols(amqpProtocol)
+  setUp(scn.inject(rampUsers(10) over (1 seconds)))
+    .protocols(amqpProtocol)
 ```
 
 ## declare queues
@@ -103,7 +113,7 @@ scala> amqp.declare(queue("q3", durable = true)).run
 
 ## consume (auto acked)
 
-
+**!!!It is not Supported after migration to newest libraries**
 ```scala
   implicit val amqpProtocol: AmqpProtocol = amqp
     .host("amqp")
@@ -114,7 +124,8 @@ scala> amqp.declare(queue("q3", durable = true)).run
     amqp("Consume").consume("q1", autoAck = true)
   }
 
-  setUp(scn.inject(atOnceUsers(1))).protocols(amqpProtocol)
+  setUp(scn.inject(atOnceUsers(1)))
+    .protocols(amqpProtocol)
 ```
 
 - full code: src/test/scala/io/gatling/amqp/ConsumingSimulation.scala
@@ -123,24 +134,51 @@ scala> amqp.declare(queue("q3", durable = true)).run
 
 - not implemented yet
 
+## working with session context
+
+```scala
+  implicit val amqpProtocol: AmqpProtocol = amqp
+    .host("localhost")
+    .port(5672)
+    .auth("guest", "guest")
+    .poolSize(10)
+    .confirmMode()
+
+  val value = 1
+
+  val scn = scenario("AMQP Publish(ack)").repeat(1000) {
+    exec(amqp("Publish").publish(
+      session => 
+        PublishRequest("q1", s"{foo:${value}")
+      )
+    )
+  }
+
+  setUp(scn.inject(rampUsers(10) over (1 seconds)))
+    .protocols(amqpProtocol)
+```
+
+**Note:** All `publish` anc `consume` methods has support for usage of session and alias replacing from session attribute.
 
 Run
 ===
-
 ## sbt directly
 
 ```bash
 % sbt
-> testOnly io.gatling.amqp.PublishingSimulation
+> gatling:test
 
 % sbt
-> testOnly io.gatling.amqp.ConsumingSimulation
+> gatling:testOnly io.gatling.amqp.PublishingSimulation
+
+% sbt
+> gatling:testOnly io.gatling.amqp.ConsumingSimulation
 ```
 
-- try `sbt -J-Xmx8192m -J-XX:MaxPermSize=256m` for publishing massive messages
+**Note:** try `sbt -J-Xmx8192m -J-XX:MaxPermSize=256m` for publishing massive messages
 
 ## shell script to store gatling stdout logs and simulation sources
-
+**!!! Need to be checked if it is working**
 ```bash
 % ./run p foo
 ```
@@ -148,72 +186,24 @@ Run
 - stored in "stats/p/foo"
 
 
-Benchmark
+Benchmark 
 =========
 
-### environments
-
-#### server
-- cpu: Xeon X5687(3.60GHz)
-- mem: 24GB, limit(10GiB), watermark(5GiB)
-
-#### rabbitmq
-- version: 3.5.2
-- total bytes = `servers * payalod * messages * users`
-- users = concurrency of AMQP connections
-
-## publish (persistent queue)
-
-| servers | payload | ack | repeat | users | total | sec | qps  | spd       |
-|--------:|--------:|:---:|-------:|------:|------:|----:|-----:|----------:|
-| 1       |   1 KB  |  o  |100,000 |    10 | 1 GB  |  69 | 14326| 14.3 MB/s |
-| 1       |  10 KB  |  o  | 10,000 |    10 | 1 GB  |  14 |  6778| 67.8 MB/s |
-| 1       | 100 KB  |  o  |  1,000 |    10 | 1 GB  |  11 |   881| 88.1 MB/s |
-| 1       |   1 MB  |  o  |    100 |    10 | 1 GB  |  10 |    97| 97.8 MB/s |
-| 1       |  10 MB  |  o  |    100 |     1 | 1 GB  |  -  |   -  | log error |
-| 1       |  10 KB  |  o  |  1,000 |   100 | 1 GB  |  17 |  5791| 57.9 MB/s |
-| 4       |   1 KB  |  o  |100,000 |    10 | 4 GB  | 298 | 13490| 13.5 MB/s |
-| 4       |  10 KB  |  o  | 10,000 |    10 | 4 GB  |  56 |  7208| 72.1 MB/s |
-
-- log error: statsEngine stopped before working actors finished
-
-## publish (persistent queue, paging)
-
-| servers | payload | ack | repeat | users | total | sec | qps   | spd       |
-|--------:|--------:|:---:|-------:|------:|------:|----:|------:|----------:|
-| 1       | 10 KB   |  o  | 100,000|    10 | 10 GB | 143 |  6983 | 69.8 MB/s |
-| 1       | 10 KB   |  o  | 200,000|    10 | 20 GB | 301 |  6632 | 66.3 MB/s |
-
-## consume (persistent queue)
-
-| payload | message| users | total | sec | qps   | spd       |
-|--------:|-------:|------:|------:|----:|------:|----------:|
-| 10 KB   | 100 k  |     1 |  1 GB |  12 |  8436 | 84.4 MB/s |
-| 10 KB   |   2 m  |     1 | 20 GB | 179 | 11161 |111.6 MB/s |
-
-## publish and consume (persistent queue)
-
-| payload |p-ack| repeat |publisher| total | qps  | spd       | consumer| ack | qps |
-|--------:|:---:|-------:|--------:|------:|-----:|----------:|--------:|:---:|----:|
-|  10 KB  |  o  | 10,000 |    10   |  1 GB | 6779 | 67.8 MB/s |     1   |auto |6233 |
-|  10 KB  |  o  |200,000 |    10   | 20 GB | 7639 | 76.4 MB/s |     1   |auto |7622 |
-
-Library
-=======
-
-- amqp-client-3.5.3
-- gatling-sbt-2.1.6 (to implement easily)
-- gatling-2.2.0-M3 (live with edge)
+After migration to newest libraries version no benchmark was run. [Reference](https://github.com/maiha/gatling-amqp#benchmark) to old Benchmark.
 
 
 TODO
 ====
-
 - declare exchanges, queues and bindings in action builder context (to test declaration costs)
 - make AmqpProtocol immutable
 - make Builder mutable
 - mandatory
 - consume action (manual ack)
+- publish library to public repository
+- enrich support for different signature of methods: `publish` and `consume`
+- migrate to new gatling-3.x version
+- migrate to new amqp-client-5.x version
+- remove usage of library `pl.project13.scala:rainbow`
 
 License
 =======

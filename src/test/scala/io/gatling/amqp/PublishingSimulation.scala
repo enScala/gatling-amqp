@@ -11,7 +11,6 @@ class PublishingSimulation extends Simulation {
   implicit val amqpProtocol: AmqpProtocol = amqp
     .host("localhost")
     .port(5672)
-    // .vhost("/")
     .auth("guest", "guest")
     .poolSize(3)
     .declare(queue("q1", durable = true, autoDelete = false))
