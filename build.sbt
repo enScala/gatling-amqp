@@ -1,51 +1,48 @@
+import sbt.ExclusionRule
+
+cancelable in Global := true
+
 enablePlugins(GatlingPlugin)
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.6"
 
 scalacOptions := Seq(
-  "-encoding", "UTF-8", "-target:jvm-1.7", "-deprecation",
+  "-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation",
   "-feature", "-unchecked", "-language:implicitConversions", "-language:postfixOps")
 
-val gatlingVersion = "2.2.5"
+val gatlingVersion = "2.3.1"
 
-xerial.sbt.Sonatype.sonatypeRootSettings
-
-publishMavenStyle := true
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
-}
-
-version := "0.6-SNAPSHOT"
+version := "0.11.0-SNAPSHOT"
 organization := "sc.ala"
 name := "gatling-amqp"
-description := "Gatling AMQP unofficial support"
-homepage := Some(url("https://github.com/maiha/gatling-amqp"))
+description := "Gatling AMQP support"
+homepage := Some(url("https://github.com/dieselr/gatling-amqp"))
 licenses := Seq("MIT License" -> url("http://www.opensource.org/licenses/mit-license.php"))
 
-pomExtra := (
-     <developers>
-        <developer>
-          <id>maiha</id>
-          <name>Kazunori Nishi</name>
-          <url>https://github.com/maiha</url>
-        </developer>
-       <developer>
-         <id>dieselr</id>
-         <name>DieselR</name>
-         <url>https://github.com/dieselr</url>
-       </developer>
-      </developers>
-      <scm>
-        <url>https://github.com/dieselr/gatling-amqp</url>
-        <connection>scm:git:git@github.com:dieselr/gatling-amqp.git</connection>
-      </scm>
+developers              := List(
+  Developer(
+    id    = "maiha",
+    name  = "Kazunori Nishi",
+    email = "N/A",
+    url   = url("https://github.com/maiha")
+  ),
+  Developer(
+    id    = "dieselr",
+    name  = "Diesel R",
+    email = "dieselr@gmail.com",
+    url   = url("https://github.com/dieselr")
+  )
 )
 
-libraryDependencies += "io.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersion
-libraryDependencies += "io.gatling"            % "gatling-test-framework"    % gatlingVersion
-libraryDependencies += "com.rabbitmq" % "amqp-client" % "3.5.3"
-libraryDependencies += "pl.project13.scala" %% "rainbow" % "0.2"
+(Test / test) := ((Test / test) dependsOn(Gatling / test)).value
+
+libraryDependencies += "io.gatling.highcharts"    % "gatling-charts-highcharts"   % gatlingVersion    % Compile
+libraryDependencies += "io.gatling"               % "gatling-test-framework"      % gatlingVersion    % Compile
+libraryDependencies += "com.rabbitmq"             % "amqp-client"                 % "4.9.0"
+libraryDependencies += "org.scalatest"            %% "scalatest"                  % "3.0.5"           % Test
+libraryDependencies += "pl.project13.scala"       % "rainbow_2.11"                % "0.2" excludeAll(
+  ExclusionRule("org.scala-lang.modules", "scala-xml_2.11"),
+  ExclusionRule("org.scalatest", "scalatest_2.11"),
+  ExclusionRule("org.scala-lang.modules", "scala-parser-combinators_2.11")
+)
+
