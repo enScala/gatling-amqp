@@ -7,7 +7,7 @@ import io.gatling.core.Predef._
 
 import scala.concurrent.duration._
 
-class ConsumingSimulation extends Simulation {
+class SubscriberSimulation extends Simulation {
   implicit val amqpProtocol: AmqpProtocol = amqp
     .host("localhost")
     .port(5672)

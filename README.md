@@ -18,7 +18,7 @@ Current libraries version
 - scala 2.12.6 (no support for scala 2.11.x)
 - amqp-client-4.9.0
 - gatling-2.3.1
-- gatling-sbt-2.2.2 (wit depdency to `SBT` 1.2.3)
+- gatling-sbt-2.2.2 (whit dependency to `SBT` [1.2.3))
 
 Usage
 =====

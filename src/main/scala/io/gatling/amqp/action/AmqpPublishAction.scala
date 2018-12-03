@@ -41,6 +41,7 @@ class AmqpPublishAction(attributes: AmqpAttributes[PublishRequest], val statsEng
   private def publishMessage(session: Session)(postAction: (PublishRequest, Long) => Unit): Validation[Unit] = {
     val startDate = nowMillis
     attributes.payload(session).map { req =>
+      logger.debug(s"Content payload used for enqueueing is [${new String(req.bytes, "UTF-8")}]")
       amqpProtocol.router ! AmqpPublishRequest(req, session)
       postAction(req, startDate)
     }

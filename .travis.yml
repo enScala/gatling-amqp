@@ -1,5 +1,29 @@
-language: scala
-script: sbt ";testOnly io.gatling.amqp.PublishingSimulation; testOnly io.gatling.amqp.ConsumingSimulation"
 sudo: false
+
+language: scala
+
+scala:
+  - 2.12.7
+
+jdk:
+  - oraclejdk8
+
+branches:
+  only:
+    - master
+
+before_cache:
+  # Cleanup the cached directories to avoid unnecessary cache updates
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt        -name "*.lock"               -print -delete
+
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
+
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION test
+
 services:
  - rabbitmq
